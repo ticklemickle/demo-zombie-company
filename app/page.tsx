@@ -414,7 +414,7 @@ export default function Page() {
   }, [latestSnapshotByTicker, selectedTicker]);
 
   return (
-    <div className="bg-slate-50 text-slate-900 antialiased min-h-screen">
+    <div className="bg-slate-50 text-slate-900 antialiased min-h-screen overflow-x-hidden">
       <div className="min-h-screen flex">
         {/* Sidebar (desktop) */}
         <aside className="w-72 hidden lg:flex flex-col bg-brand-950 text-white">
@@ -560,34 +560,48 @@ export default function Page() {
 
           <div className="mx-auto max-w-7xl px-4 lg:px-8 py-6 space-y-6">
             {/* KPI cards (business view) */}
-            <section className="grid sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-6">
-              <div className="lg:col-span-4 grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-1">
-                <KpiCard
-                  label="관심 기업"
-                  value={seriesData.length ? `${seriesData.length}개` : "-"}
-                  desc="선별된 Top 30 기업을 모니터링"
-                  icon="🏢"
-                />
-                <KpiCard
-                  label="데이터 기간"
-                  value={
-                    overallRange.min
-                      ? `${overallRange.min}~${overallRange.max}`
-                      : "-"
-                  }
-                  desc="연도별 추세를 한 눈에"
-                  icon="🗓️"
-                />
-                <KpiCard
-                  label="선택 기업"
-                  value={selected ? selected.corp_name : "-"}
-                  desc={
-                    selected
-                      ? `기업번호: ${selected.ticker}`
-                      : "기업을 선택해 주세요"
-                  }
-                  icon="✅"
-                />
+            <section className="sm:grid sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-6">
+              <div className="lg:col-span-4">
+                <div
+                  className="
+    flex flex-row gap-3 overflow-x-auto pb-2
+    sm:pb-0 sm:grid sm:grid-cols-2 sm:gap-4
+    lg:grid-cols-1
+  "
+                >
+                  <div className="min-w-[240px] sm:min-w-0">
+                    <KpiCard
+                      label="관심 기업"
+                      value={seriesData.length ? `${seriesData.length}개` : "-"}
+                      desc="선별된 Top 30 기업을 모니터링"
+                      icon="🏢"
+                    />
+                  </div>
+                  <div className="min-w-[240px] sm:min-w-0">
+                    <KpiCard
+                      label="데이터 기간"
+                      value={
+                        overallRange.min
+                          ? `${overallRange.min}~${overallRange.max}`
+                          : "-"
+                      }
+                      desc="연도별 추세를 한 눈에"
+                      icon="🗓️"
+                    />
+                  </div>
+                  <div className="min-w-[240px] sm:min-w-0">
+                    <KpiCard
+                      label="선택 기업"
+                      value={selected ? selected.corp_name : "-"}
+                      desc={
+                        selected
+                          ? `기업번호: ${selected.ticker}`
+                          : "기업을 선택해 주세요"
+                      }
+                      icon="✅"
+                    />
+                  </div>
+                </div>
               </div>
               <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-soft p-5">
                 <div className="flex items-center justify-between gap-3">
@@ -729,8 +743,112 @@ export default function Page() {
                   </a>
                 </div>
               </div>
+              {/* Mobile: cards */}
+              <div className="md:hidden">
+                <div className="divide-y divide-slate-200">
+                  {tableRows.map((r) => {
+                    const isSel = r.ticker === selectedTicker;
 
-              <div className="overflow-x-auto">
+                    const probaClass =
+                      r.proba == null
+                        ? "text-slate-400"
+                        : r.proba >= 0.99
+                          ? "text-red-700"
+                          : r.proba >= 0.98
+                            ? "text-amber-700"
+                            : "text-green-900";
+
+                    return (
+                      <button
+                        key={`${r.ticker}-${r.year}`}
+                        type="button"
+                        className={`w-full text-left px-4 py-4 active:scale-[0.99] transition
+            ${isSel ? "bg-cyan-50/60" : "bg-white"}
+          `}
+                        onClick={() => {
+                          setSelectedTicker(r.ticker);
+
+                          if (window.location.hash !== "#dashboard") {
+                            window.location.hash = "dashboard";
+                          }
+
+                          document.getElementById("dashboard")?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                          });
+                        }}
+                      >
+                        {/* Top row: name + badge */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="font-extrabold text-brand-950 truncate">
+                              {r.corp_name || "-"}
+                            </div>
+                            <div className="mt-1 text-xs text-slate-500">
+                              티커 {r.ticker} · {r.year || "-"}년
+                            </div>
+                          </div>
+                          <div className="shrink-0 flex flex-col items-end gap-2">
+                            <RiskBadge stage={r.risk_level} />
+                            <div
+                              className={`text-sm font-extrabold ${probaClass}`}
+                            >
+                              {formatProba(r.proba ?? 0)}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Key metrics */}
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                            <div className="text-[11px] text-slate-500">
+                              자산
+                            </div>
+                            <div className="mt-1 font-extrabold text-slate-800">
+                              {formatKRW(r.total_assets)}
+                            </div>
+                          </div>
+
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                            <div className="text-[11px] text-slate-500">
+                              부채
+                            </div>
+                            <div className="mt-1 font-extrabold text-slate-800">
+                              {formatKRW(r.total_liabilities)}
+                            </div>
+                          </div>
+
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                            <div className="text-[11px] text-slate-500">
+                              자본
+                            </div>
+                            <div className="mt-1 font-extrabold text-slate-800">
+                              {formatKRW(r.equity)}
+                            </div>
+                          </div>
+
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                            <div className="text-[11px] text-slate-500">
+                              영업현금
+                            </div>
+                            <div className="mt-1 font-extrabold text-slate-800">
+                              {formatKRW(r.operating_cf)}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Hint */}
+                        <div className="mt-3 text-[11px] text-slate-500">
+                          탭하면 상단 그래프/요약이 이 기업으로 변경됩니다.
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Desktop/Tablet: table */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead className="bg-slate-50 border-y border-slate-200">
                     <tr className="text-left text-xs uppercase tracking-wider text-slate-500">
@@ -808,10 +926,17 @@ export default function Page() {
               </div>
             </section>
 
-            <footer className="py-6 text-center text-xs text-slate-500">
-              © Data-Reference:
-              https://opendart.fss.or.kr/disclosureinfo/fnltt/dwld/main.do
-              <br></br>
+            <footer className="py-6 text-center text-xs text-slate-500 break-all px-4">
+              © Data-Reference:{" "}
+              <a
+                className="underline"
+                href="https://opendart.fss.or.kr/disclosureinfo/fnltt/dwld/main.do"
+                target="_blank"
+                rel="noreferrer"
+              >
+                https://opendart.fss.or.kr/disclosureinfo/fnltt/dwld/main.do
+              </a>
+              <br />
               <b>Made by andylee09@kaist.ac.kr 2026</b>
             </footer>
           </div>
